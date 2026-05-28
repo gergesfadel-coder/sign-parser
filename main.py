@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Header
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import ezdxf
 import fitz  # PyMuPDF
@@ -13,15 +13,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# If PARSER_SECRET is set in the environment, all requests must supply it.
-# If it is NOT set (empty string / missing), the check is skipped entirely —
-# this makes local and fresh-deploy setups work without secret coordination.
-SECRET = os.getenv("PARSER_SECRET", "").strip()
-
-
-def verify(secret: str | None):
-    if SECRET and secret != SECRET:
-        raise HTTPException(status_code=401, detail="Unauthorised")
+# No secret auth — this service is only called server-side from the
+# Next.js API route. Access control is handled at the Next.js layer.
 
 
 # ── DXF ──────────────────────────────────────────────────────────────────────
@@ -143,20 +136,12 @@ def health():
 
 
 @app.post("/parse/dxf")
-async def parse_dxf(
-    file: UploadFile = File(...),
-    x_parser_secret: str | None = Header(default=None),
-):
-    verify(x_parser_secret)
+async def parse_dxf(file: UploadFile = File(...)):
     data = await file.read()
     return dxf_to_svg(data)
 
 
 @app.post("/parse/pdf")
-async def parse_pdf(
-    file: UploadFile = File(...),
-    x_parser_secret: str | None = Header(default=None),
-):
-    verify(x_parser_secret)
+async def parse_pdf(file: UploadFile = File(...)):
     data = await file.read()
     return pdf_to_svg(data)
