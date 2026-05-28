@@ -13,11 +13,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SECRET = os.getenv("PARSER_SECRET", "dev-secret")
+# If PARSER_SECRET is set in the environment, all requests must supply it.
+# If it is NOT set (empty string / missing), the check is skipped entirely —
+# this makes local and fresh-deploy setups work without secret coordination.
+SECRET = os.getenv("PARSER_SECRET", "").strip()
 
 
 def verify(secret: str | None):
-    if secret != SECRET:
+    if SECRET and secret != SECRET:
         raise HTTPException(status_code=401, detail="Unauthorised")
 
 
